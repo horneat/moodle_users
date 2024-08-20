@@ -13,7 +13,8 @@ if (!extension_loaded('pdo_pgsql')) {
 }
 
 // Komut satırı parametrelerini kontrol et (Check command line parameters)
-$options = getopt('', ['test', 'create_table']);
+// --create_table and --create-table will be considered the same
+$options = getopt('', ['test', 'create-table', 'create_table']);
 $filename = 'users.csv';
 
 // PostgreSQL veritabanına bağlan (Connect to PostgreSQL database)
@@ -23,23 +24,7 @@ try {
     die("Error: Unable to connect to the database. " . $e->getMessage() . "\n");
 }
 
-if (isset($options['test'])) {
-    // Test modu (Test mode)
-    if (!file_exists($filename)) {
-        die("Error: CSV file not found.\n");
-    }
-
-    try {
-        $pdo->query("SELECT 1 FROM $table LIMIT 1");
-    } catch (PDOException $e) {
-        die("Error: Table '$table' is missing.\n");
-    }
-
-    echo "All tests passed successfully.\n";
-    exit;
-}
-
-if (isset($options['create_table'])) {
+if (isset($options['create-table']) || isset($options['create_table'])) {
     // Tablo oluşturma (Create table)
     $createTableQuery = "
         CREATE TABLE IF NOT EXISTS $table (
@@ -58,6 +43,29 @@ if (isset($options['create_table'])) {
     }
 
     exit;
+}
+
+if (isset($options['test'])) {
+    // Test modu (Test mode)
+    if (!file_exists($filename)) {
+        die("Error: CSV file not found.\n");
+    }
+
+    try {
+        $pdo->query("SELECT 1 FROM $table LIMIT 1");
+    } catch (PDOException $e) {
+        die("Error: Table '$table' is missing.\n");
+    }
+
+    echo "All tests passed successfully.\n";
+    exit;
+}
+
+// Tablo mevcut mu kontrol et (Check if the table exists)
+try {
+    $pdo->query("SELECT 1 FROM $table LIMIT 1");
+} catch (PDOException $e) {
+    die("Error: Table '$table' is missing. Please run the script with '--create-table' to create the table.\n");
 }
 
 // CSV dosyasını aç ve verileri oku (Open CSV file and read data)
