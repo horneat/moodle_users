@@ -1,21 +1,34 @@
 <?php
 
-// Ayarlar (Settings)
-$host = 'localhost';
-$dbname = 'your_database';
-$user = 'your_username';
-$password = 'your_password';
+// Komut satırı parametrelerini kontrol et (Check command line parameters)
+$options = getopt('u:p:db:h:f:?', ['create-table', 'create_table', 'file:', 'help']);
+
+// Yardım ve seçenekleri göster (Show help and options)
+if (isset($options['?']) || isset($options['help'])) {
+    echo "Usage: php user_upload.php [options]\n";
+    echo "Options:\n";
+    echo "  -u username      PostgreSQL username\n";
+    echo "  -p password      PostgreSQL password\n";
+    echo "  -db database     PostgreSQL database name\n";
+    echo "  -h host          PostgreSQL host address\n";
+    echo "  --file filename  CSV file to parse\n";
+    echo "  --create-table   Create the 'users' table (use --create_table or --create-table)\n";
+    echo "  -? or --help     Display this help message\n";
+    exit;
+}
+
+// Kullanıcı seçeneklerini doğrula (Validate user options)
+$host = $options['h'] ?? 'localhost';
+$dbname = $options['db'] ?? die("Error: Database name is required.\n");
+$user = $options['u'] ?? die("Error: Username is required.\n");
+$password = $options['p'] ?? die("Error: Password is required.\n");
+$filename = $options['file'] ?? die("Error: CSV file name is required.\n");
 $table = 'users';
 
 // PDO_PGSQL sürücüsü mevcut mu? (Is PDO_PGSQL driver available?)
 if (!extension_loaded('pdo_pgsql')) {
     die("Error: PDO_PGSQL driver is not available.\n");
 }
-
-// Komut satırı parametrelerini kontrol et (Check command line parameters)
-// --create_table and --create-table will be considered the same
-$options = getopt('', ['test', 'create-table', 'create_table']);
-$filename = 'users.csv';
 
 // PostgreSQL veritabanına bağlan (Connect to PostgreSQL database)
 try {
@@ -25,6 +38,35 @@ try {
 }
 
 if (isset($options['create-table']) || isset($options['create_table'])) {
+    // Tablo var mı kontrol et (Check if the table exists)
+    $tableExists = false;
+    try {
+        $pdo->query("SELECT 1 FROM $table LIMIT 1");
+        $tableExists = true;
+    } catch (PDOException $e) {
+        // Table does not exist
+    }
+
+    if ($tableExists) {
+        // Kullanıcıya sor (Ask the user)
+        echo "The table '$table' exists. Would you like to drop the table and recreate it? [y/N]: ";
+        $handle = fopen("php://stdin", "r");
+        $line = trim(fgets($handle));
+        fclose($handle);
+
+        if (strtolower($line) === 'y') {
+            try {
+                $pdo->exec("DROP TABLE IF EXISTS $table");
+                echo "Table '$table' dropped successfully.\n";
+            } catch (PDOException $e) {
+                die("Error: Unable to drop the table. " . $e->getMessage() . "\n");
+            }
+        } else {
+            echo "Table creation skipped.\n";
+            exit;
+        }
+    }
+
     // Tablo oluşturma (Create table)
     $createTableQuery = "
         CREATE TABLE IF NOT EXISTS $table (
@@ -42,22 +84,6 @@ if (isset($options['create-table']) || isset($options['create_table'])) {
         die("Error: Unable to create table. " . $e->getMessage() . "\n");
     }
 
-    exit;
-}
-
-if (isset($options['test'])) {
-    // Test modu (Test mode)
-    if (!file_exists($filename)) {
-        die("Error: CSV file not found.\n");
-    }
-
-    try {
-        $pdo->query("SELECT 1 FROM $table LIMIT 1");
-    } catch (PDOException $e) {
-        die("Error: Table '$table' is missing.\n");
-    }
-
-    echo "All tests passed successfully.\n";
     exit;
 }
 
