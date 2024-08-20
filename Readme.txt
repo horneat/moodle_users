@@ -5,7 +5,7 @@ If driver is there, then we would move to test connectivity to PGSQL.
 If we've passed them both, then, woohoo!
 
 Following command line options are added:
---file or -f to specify the CSV file.
+--file (or -f) to specify the CSV filename.
 -u for PostgreSQL username.
 -p for PostgreSQL password.
 -d for PostgreSQL database name.
@@ -17,7 +17,7 @@ Following command line options are added:
 If --create-table parameter was used;
 - Checks if the table exists.
 - If it exists, prompts the user to confirm whether to drop and recreate it.
-- Skips table creation if user chooses not to drop the existing table.
+- Skips table creation if user chooses [N]ot to drop the existing table.
 
 - USAGE
 php user_upload.php --file your_file.csv -u db_username -p db_password -d your_database -h your_host

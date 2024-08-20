@@ -25,7 +25,7 @@ $password = $options['p'] ?? die("Error: Password is required.\n");
 $table = 'users';
 
 // CSV dosyası yalnızca tablo oluşturulmadığında gerekli (CSV file is only required if not creating a table)
-$filename = $options['f'] ?? null;
+$filename = $options['file'] ?? $options['f'] ?? null;  // Ensure both long and short options are checked
 
 // PDO_PGSQL sürücüsü mevcut mu? (Is PDO_PGSQL driver available?)
 if (!extension_loaded('pdo_pgsql')) {
