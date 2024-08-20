@@ -1,7 +1,7 @@
 <?php
 
 // Komut satırı parametrelerini kontrol et (Check command line parameters)
-$options = getopt('u:p:db:h:f:?', ['create-table', 'create_table', 'file:', 'help']);
+$options = getopt('u:p:d:h:f:?', ['create-table', 'create_table', 'file:', 'help']);
 
 // Yardım ve seçenekleri göster (Show help and options)
 if (isset($options['?']) || isset($options['help'])) {
@@ -9,7 +9,7 @@ if (isset($options['?']) || isset($options['help'])) {
     echo "Options:\n";
     echo "  -u username      PostgreSQL username\n";
     echo "  -p password      PostgreSQL password\n";
-    echo "  -d database     PostgreSQL database name\n";
+    echo "  -d database      PostgreSQL database name\n";
     echo "  -h host          PostgreSQL host address\n";
     echo "  --file filename  CSV file to parse\n";
     echo "  --create-table   Create the 'users' table (use --create_table or --create-table)\n";
@@ -17,16 +17,15 @@ if (isset($options['?']) || isset($options['help'])) {
     exit;
 }
 
-// Option should be `-d` for the database name.
-$options = getopt('u:p:d:h:f:?', ['create-table', 'create_table', 'file:', 'help']);
-
 // Kullanıcı seçeneklerini doğrula (Validate user options)
 $host = $options['h'] ?? 'localhost';
 $dbname = $options['d'] ?? die("Error: Database name is required.\n");
 $user = $options['u'] ?? die("Error: Username is required.\n");
 $password = $options['p'] ?? die("Error: Password is required.\n");
-$filename = $options['f'] ?? die("Error: CSV file name is required.\n");
 $table = 'users';
+
+// CSV dosyası yalnızca tablo oluşturulmadığında gerekli (CSV file is only required if not creating a table)
+$filename = $options['f'] ?? null;
 
 // PDO_PGSQL sürücüsü mevcut mu? (Is PDO_PGSQL driver available?)
 if (!extension_loaded('pdo_pgsql')) {
@@ -88,6 +87,11 @@ if (isset($options['create-table']) || isset($options['create_table'])) {
     }
 
     exit;
+}
+
+// Bu noktada bir CSV dosyası gerekli (At this point, a CSV file is required)
+if (!$filename) {
+    die("Error: CSV file name is required.\n");
 }
 
 // Tablo mevcut mu kontrol et (Check if the table exists)
