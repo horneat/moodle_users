@@ -9,7 +9,7 @@ if (isset($options['?']) || isset($options['help'])) {
     echo "Options:\n";
     echo "  -u username      PostgreSQL username\n";
     echo "  -p password      PostgreSQL password\n";
-    echo "  -db database     PostgreSQL database name\n";
+    echo "  -d database     PostgreSQL database name\n";
     echo "  -h host          PostgreSQL host address\n";
     echo "  --file filename  CSV file to parse\n";
     echo "  --create-table   Create the 'users' table (use --create_table or --create-table)\n";
@@ -17,12 +17,15 @@ if (isset($options['?']) || isset($options['help'])) {
     exit;
 }
 
+// Option should be `-d` for the database name.
+$options = getopt('u:p:d:h:f:?', ['create-table', 'create_table', 'file:', 'help']);
+
 // Kullanıcı seçeneklerini doğrula (Validate user options)
 $host = $options['h'] ?? 'localhost';
-$dbname = $options['db'] ?? die("Error: Database name is required.\n");
+$dbname = $options['d'] ?? die("Error: Database name is required.\n");
 $user = $options['u'] ?? die("Error: Username is required.\n");
 $password = $options['p'] ?? die("Error: Password is required.\n");
-$filename = $options['file'] ?? die("Error: CSV file name is required.\n");
+$filename = $options['f'] ?? die("Error: CSV file name is required.\n");
 $table = 'users';
 
 // PDO_PGSQL sürücüsü mevcut mu? (Is PDO_PGSQL driver available?)
