@@ -1,7 +1,7 @@
 <?php
 
 // Komut satırı parametrelerini kontrol et (Check command line parameters)
-$options = getopt('u:p:d:h:f:?', ['create-table', 'create_table', 'file:', 'help']);
+$options = getopt('u:p:d:h:f:?', ['create-table', 'create_table', 'file:', 'dry-run', 'help']);
 
 // Yardım ve seçenekleri göster (Show help and options)
 if (isset($options['?']) || isset($options['help'])) {
@@ -12,6 +12,7 @@ if (isset($options['?']) || isset($options['help'])) {
     echo "  -d database      PostgreSQL database name\n";
     echo "  -h host          PostgreSQL host address\n";
     echo "  --file filename  CSV file to parse\n";
+    echo "  --dry-run        Run script to validate CSV and database connection without inserting data\n";
     echo "  --create-table   Create the 'users' table (use --create_table or --create-table)\n";
     echo "  -? or --help     Display this help message\n";
     exit;
@@ -25,7 +26,8 @@ $password = $options['p'] ?? die("Error: Password is required.\n");
 $table = 'users';
 
 // CSV dosyası yalnızca tablo oluşturulmadığında gerekli (CSV file is only required if not creating a table)
-$filename = $options['file'] ?? $options['f'] ?? null;  // Ensure both long and short options are checked
+$filename = $options['file'] ?? $options['f'] ?? null;
+$isDryRun = isset($options['dry-run']);
 
 // PDO_PGSQL sürücüsü mevcut mu? (Is PDO_PGSQL driver available?)
 if (!extension_loaded('pdo_pgsql')) {
@@ -101,19 +103,52 @@ try {
     die("Error: Table '$table' is missing. Please run the script with '--create-table' to create the table.\n");
 }
 
-// CSV dosyasını aç ve verileri oku (Open CSV file and read data)
+// CSV dosyasını aç ve verileri kontrol et (Open CSV file and check data)
 if (($handle = fopen($filename, 'r')) !== false) {
+    // Başlık satırını atla (Skip header row)
+    fgetcsv($handle, 1000, ',');
+
     $pdo->beginTransaction();
 
     while (($data = fgetcsv($handle, 1000, ',')) !== false) {
-        $stmt = $pdo->prepare("INSERT INTO $table (name, surname, email) VALUES (?, ?, ?) ON CONFLICT (email) DO NOTHING");
-        $stmt->execute([$data[0], $data[1], $data[2]]);
+        // Ad ve soyadları büyük harfle başlat (Capitalize name and surname)
+        $name = ucfirst(strtolower(trim($data[0])));
+        $surname = ucfirst(strtolower(trim($data[1])));
+        $email = strtolower(trim($data[2]));
+
+        // Ad ve soyadı doğrula (Validate name and surname)
+        if (!preg_match("/^[a-zA-Z' -]+$/", $name)) {
+            echo "Error: Invalid name '$name'. Skipping...\n";
+            continue;
+        }
+        if (!preg_match("/^[a-zA-Z' -]+$/", $surname)) {
+            echo "Error: Invalid surname '$surname'. Skipping...\n";
+            continue;
+        }
+
+        // E-posta doğrula (Validate email)
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo "Error: Invalid email '$email'. Skipping...\n";
+            continue;
+        }
+
+        if ($isDryRun) {
+            // Sadece veri göster, ekleme yapma (Only show data, do not insert)
+            echo "Would insert: Name = $name, Surname = $surname, Email = $email\n";
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO $table (name, surname, email) VALUES (?, ?, ?) ON CONFLICT (email) DO NOTHING");
+            $stmt->execute([$name, $surname, $email]);
+        }
     }
 
     fclose($handle);
-    $pdo->commit();
 
-    echo "Data successfully inserted into the table.\n";
+    if (!$isDryRun) {
+        $pdo->commit();
+        echo "Data successfully inserted into the table.\n";
+    } else {
+        echo "Dry run complete. No data was inserted into the database.\n";
+    }
 } else {
     die("Error: Unable to open CSV file.\n");
 }
