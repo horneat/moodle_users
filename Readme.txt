@@ -38,3 +38,9 @@ CSV File: The first row (header) of the CSV file is skipped, and data is inserte
 Name and Surname Validation: Names and surnames must only contain letters, apostrophes, and hyphens. They are automatically capitalized before insertion.
 Email Validation: Email addresses are validated for correct format and converted to lowercase before insertion.
 Dry Run: Use the --dry-run option to check if the script can parse the CSV and connect to the database without actually inserting any data.
+
+DUPLICATE DETECTION
+in CSV: Added a check for duplicate email addresses within the CSV file itself. If a duplicate is found, a warning is displayed, and the entry is skipped.
+in Database: When inserting data into the database, if a duplicate email is detected (violating the UNIQUE constraint on the email field), a warning is displayed.
+Both duplicate entries in the CSV file and duplicate emails in the database trigger a warning with a message showing the duplicate email.
+This should help managing potential duplicates during the data import process.

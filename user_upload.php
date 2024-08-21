@@ -105,6 +105,9 @@ try {
 
 // CSV dosyasını aç ve verileri kontrol et (Open CSV file and check data)
 if (($handle = fopen($filename, 'r')) !== false) {
+    // Duplicate detection arrays
+    $csvEmails = [];
+    
     // Başlık satırını atla (Skip header row)
     fgetcsv($handle, 1000, ',');
 
@@ -115,6 +118,13 @@ if (($handle = fopen($filename, 'r')) !== false) {
         $name = ucfirst(strtolower(trim($data[0])));
         $surname = ucfirst(strtolower(trim($data[1])));
         $email = strtolower(trim($data[2]));
+
+        // Check for duplicates in CSV
+        if (in_array($email, $csvEmails)) {
+            echo "Warning: Duplicate entry found in CSV for email '$email'. Skipping...\n";
+            continue;
+        }
+        $csvEmails[] = $email;
 
         // Ad ve soyadı doğrula (Validate name and surname)
         if (!preg_match("/^[a-zA-Z' -]+$/", $name)) {
@@ -136,8 +146,16 @@ if (($handle = fopen($filename, 'r')) !== false) {
             // Sadece veri göster, ekleme yapma (Only show data, do not insert)
             echo "Would insert: Name = $name, Surname = $surname, Email = $email\n";
         } else {
-            $stmt = $pdo->prepare("INSERT INTO $table (name, surname, email) VALUES (?, ?, ?) ON CONFLICT (email) DO NOTHING");
-            $stmt->execute([$name, $surname, $email]);
+            try {
+                $stmt = $pdo->prepare("INSERT INTO $table (name, surname, email) VALUES (?, ?, ?)");
+                $stmt->execute([$name, $surname, $email]);
+            } catch (PDOException $e) {
+                if ($e->getCode() == '23505') { // 23505 is the code for unique constraint violation
+                    echo "Warning: Duplicate email '$email' found in database. Skipping...\n";
+                } else {
+                    echo "Error: " . $e->getMessage() . "\n";
+                }
+            }
         }
     }
 
