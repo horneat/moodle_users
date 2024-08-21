@@ -1,40 +1,40 @@
-First thing first. 
-It tests the presence of PDO_PGSQL driver first which everything depends on.
-If there's no driver installed, then it throws an error and exits.
-If driver is there, then we would move to test connectivity to PGSQL. 
-If we've passed them both, then, let the fun begin!
+USER UPLOAD SCRIPT
 
+This PHP script uploads user data from a CSV file into a PostgreSQL database.
 
+Prerequisites
+PHP 8.2.x
+PostgreSQL database
+pdo_pgsql PHP extension
 
-Following command line options are included:
---file (or -f) to specify the CSV filename.
--u for PostgreSQL username.
--p for PostgreSQL password.
--d for PostgreSQL database name.
--h for PostgreSQL host address.
---create-table or --create_table to create the table.
---help to display quick help instructions.
+USAGE
+To run the script, use the following command:
 
-- TABLE CREATION
-If --create-table parameter was used;
-- Checks if the table exists.
-- If it exists, prompts the user to confirm whether to drop and recreate it.
-- Skips table creation if user chooses [N]ot to drop the existing table.
-
-- USAGE
 php user_upload.php [options]
 
-- OPTIONS
---file your_file.csv 	: Defines the name of CSV file to be used for input.
-php user_upload.php --file your_file.csv -u db_username -p db_password -d your_database -h your_host
+OPTIONS
+-u username: PostgreSQL username (required)
+-p password: PostgreSQL password (required)
+-d database: PostgreSQL database name (required)
+-h host: PostgreSQL host address (default: localhost)
+--file filename or -f filename: CSV file to parse (required unless creating the table)
+--dry-run: Validate CSV and database connection without inserting data
+--create-table or --create_table: Create the 'users' table in the database
+-? or --help: Display help and usage information
 
---dry-run				: Used with --file option to test readability of the CSV file and execution of all functions while NOT altering the database. Displays the parsed CSV file content.
-php user_upload.php --file users.csv --dry-run -u your_username -p your_password -d your_database -h your_host
-
---create-table			: Creates the users table in PostgreSQL database (--create_table also works)
+EXAMPLES
+Create the users table:
 php user_upload.php --create-table -u your_username -p your_password -d your_database -h your_host
 
---help : Display help
+Insert data from CSV file:
+php user_upload.php --file your_file.csv -u your_username -p your_password -d your_database -h your_host
 
+Dry run to validate CSV and database connection:
+php user_upload.php --file your_file.csv --dry-run -u your_username -p your_password -d your_database -h your_host
 
-
+NOTES
+Table Creation: If the --create-table or --create_table option is used and the users table already exists, the script will prompt you to drop and recreate the table.
+CSV File: The first row (header) of the CSV file is skipped, and data is inserted into the name, surname, and email fields.
+Name and Surname Validation: Names and surnames must only contain letters, apostrophes, and hyphens. They are automatically capitalized before insertion.
+Email Validation: Email addresses are validated for correct format and converted to lowercase before insertion.
+Dry Run: Use the --dry-run option to check if the script can parse the CSV and connect to the database without actually inserting any data.

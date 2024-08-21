@@ -3,8 +3,13 @@
 // Komut satırı parametrelerini kontrol et (Check command line parameters)
 $options = getopt('u:p:d:h:f:?', ['create-table', 'create_table', 'file:', 'dry-run', 'help']);
 
-// Yardım ve seçenekleri göster (Show help and options)
-if (isset($options['?']) || isset($options['help'])) {
+// PDO_PGSQL sürücüsü mevcut mu? (Is PDO_PGSQL driver available?)
+if (!extension_loaded('pdo_pgsql')) {
+    die("Error: PDO_PGSQL driver is not available.\n");
+}
+
+// Parametre verilmediyse, yardım göster (If no parameters are provided, show help and options)
+if ($options === false || empty($options)) {
     echo "Usage: php user_upload.php [options]\n";
     echo "Options:\n";
     echo "  -u username      PostgreSQL username\n";
@@ -28,11 +33,6 @@ $table = 'users';
 // CSV dosyası yalnızca tablo oluşturulmadığında gerekli (CSV file is only required if not creating a table)
 $filename = $options['file'] ?? $options['f'] ?? null;
 $isDryRun = isset($options['dry-run']);
-
-// PDO_PGSQL sürücüsü mevcut mu? (Is PDO_PGSQL driver available?)
-if (!extension_loaded('pdo_pgsql')) {
-    die("Error: PDO_PGSQL driver is not available.\n");
-}
 
 // PostgreSQL veritabanına bağlan (Connect to PostgreSQL database)
 try {
